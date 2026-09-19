@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>標本庭 — botanica</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600&display=swap');
+:root{
+  --paper:#eee8d8; --sheet:#faf8f1; --ink:#39362d; --soft:#756f5f;
+  --moss:#52664a; --gold:#b99b54; --line:#b8ad8c; --brown:#765536;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; min-height:100vh; padding:38px 14px;
+  color:var(--ink); background:var(--paper);
+  font-family:"Shippori Mincho","Hiragino Mincho ProN",serif;
+}
+.book{
+  max-width:720px; margin:auto; background:var(--sheet);
+  border:2px solid var(--line); box-shadow:0 10px 30px #665f4b22;
+  outline:1px solid var(--line); outline-offset:-13px;
+}
+header{text-align:center;padding:35px 20px 18px;border-bottom:1px solid var(--line)}
+h1{font-size:29px;letter-spacing:.14em;font-weight:400;margin:0}
+.subtitle{font-size:12px;letter-spacing:.25em;color:var(--soft);margin-top:8px}
+.money{margin-top:14px;color:var(--gold)}
+nav{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line)}
+nav button{
+  font:inherit;color:var(--soft);background:none;border:0;padding:16px 5px;cursor:pointer
+}
+nav button.active{color:var(--ink);box-shadow:inset 0 -3px var(--moss)}
+main{padding:20px 32px 42px}
+.actions{text-align:center;color:var(--soft);font-size:12px}
+.pips{display:flex;justify-content:center;gap:7px;margin-bottom:5px}
+.pip{width:27px;height:9px;border:2px solid var(--ink);background:var(--ink)}
+.pip.used{background:transparent}
+.stage{
+  height:250px;margin:18px 0 10px;border:1px solid var(--line);
+  position:relative;overflow:hidden;background:#fffdf8
+}
+.ground{position:absolute;left:0;right:0;bottom:28px;border-top:1px solid #d5ccb2}
+.plant{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);font-size:54px}
+.name{text-align:center;font-size:19px;margin-top:9px}
+.desc{text-align:center;color:var(--soft);font-size:13px;margin:5px 0 24px}
+.stat{display:grid;grid-template-columns:70px 1fr 34px;align-items:center;gap:10px;margin:13px 0;font-size:14px}
+.bar{height:9px;border:1px solid var(--line)}
+.fill{height:100%;background:var(--moss);transition:.25s}
+.value{text-align:right;color:var(--soft)}
+.hint{border-top:1px dotted var(--line);padding-top:14px;margin-top:17px;font-size:13px}
+.buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:15px 0}
+.action{
+  min-height:70px;background:transparent;border:2px solid var(--ink);font:inherit;
+  color:var(--ink);cursor:pointer
+}
+.action small{display:block;color:var(--soft);margin-top:5px}
+.action:disabled{opacity:.35;cursor:not-allowed}
+.dayrow{display:flex;justify-content:space-between;align-items:center;margin-top:20px}
+.next{padding:10px 20px;border:2px solid var(--moss);background:transparent;color:var(--moss);font:inherit;cursor:pointer}
+.log{border-top:1px solid var(--line);margin-top:16px;padding-top:15px;color:var(--soft);font-size:13px;min-height:45px}
+.panel{display:none;min-height:510px;padding:15px 0}
+.panel.active{display:block}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.card{border:1px solid var(--line);padding:18px;text-align:center;background:#fffdf8}
+.card .big{font-size:45px}
+.shop button{margin-top:10px;padding:8px 13px;background:transparent;border:1px solid var(--ink);font:inherit}
+.reset{margin-top:30px;background:none;border:0;color:#b1a681;text-decoration:underline;cursor:pointer}
+@media(max-width:560px){main{padding:18px}.stage{height:210px}.buttons{gap:5px}.action{font-size:13px}h1{font-size:23px}}
+</style>
+</head>
+<body>
+<div class="book">
+<header>
+  <h1>標本庭 — botanica</h1>
+  <div class="subtitle">HERBARIUM CULTIVATION LOG</div>
+  <div class="money">💰 <span id="money">30</span></div>
+</header>
+<nav>
+  <button class="tab active" data-tab="grow">育成</button>
+  <button class="tab" data-tab="dex">図鑑</button>
+  <button class="tab" data-tab="press">押し花帳</button>
+  <button class="tab" data-tab="shop">種店</button>
+</nav>
+<main>
+<section id="grow" class="panel active">
+  <div class="actions"><div class="pips" id="pips"></div>本日の行動力</div>
+  <div class="stage"><div class="ground"></div><div class="plant" id="plant">●</div></div>
+  <div class="name" id="plantName">たね</div>
+  <div class="desc" id="plantDesc">土に植えられたばかり</div>
+  <div id="stats"></div>
+  <div class="hint">手がかり：<span id="hint">日照高め・水分ふつう / 水分高め・日照低め</span></div>
+  <div class="buttons">
+    <button class="action" data-stat="water">水をやる<small>+18 水分</small></button>
+    <button class="action" data-stat="sun">日にあてる<small>+18 日照</small></button>
+    <button class="action" data-stat="food">肥料をやる<small>+18 養分</small></button>
+  </div>
+  <div class="dayrow"><span><span id="day">1</span>日目</span><button class="next" id="next">翌日へ →</button></div>
+  <div class="log" id="log">種を土にまいた。1日3回まで行動できる。バランスと天候の変化に注意。</div>
+</section>
+
+<section id="dex" class="panel">
+  <h2>図鑑</h2><div class="cards" id="dexCards"></div>
+</section>
+<section id="press" class="panel">
+  <h2>押し花帳</h2><div class="cards" id="pressCards"></div>
+</section>
+<section id="shop" class="panel shop">
+  <h2>種店</h2>
+  <div class="cards">
+    <div class="card"><div class="big">🌱</div><b>野の花の種</b><br>10<br><button onclick="buy('野の花')">買う</button></div>
+    <div class="card"><div class="big">🌿</div><b>湿地の種</b><br>15<br><button onclick="buy('湿地の花')">買う</button></div>
+    <div class="card"><div class="big">🌼</div><b>陽だまりの種</b><br>20<br><button onclick="buy('陽だまりの花')">買う</button></div>
+  </div>
+</section>
+<button class="reset" id="reset">図鑑・押し花帳をすべて消去</button>
+</main>
+</div>
+<script>
+const defaults={day:1,actions:3,money:30,water:50,sun:50,food:50,stage:0,dex:[],pressed:[]};
+let s=JSON.parse(localStorage.getItem("botanica-save")||"null")||structuredClone(defaults);
+const $=x=>document.querySelector(x);
+const clamp=n=>Math.max(0,Math.min(100,n));
+const save=()=>localStorage.setItem("botanica-save",JSON.stringify(s));
+
+function render(){
+  $("#money").textContent=s.money; $("#day").textContent=s.day;
+  $("#pips").innerHTML=[0,1,2].map(i=>`<span class="pip ${i>=s.actions?'used':''}"></span>`).join("");
+  const labels=[["water","水分"],["sun","日照"],["food","養分"]];
+  $("#stats").innerHTML=labels.map(([k,n])=>`<div class="stat"><span>${n}</span><div class="bar"><div class="fill" style="width:${s[k]}%"></div></div><span class="value">${s[k]}</span></div>`).join("");
+  document.querySelectorAll(".action").forEach(b=>b.disabled=s.actions<=0);
+  let p=s.stage===0?["●","たね","土に植えられたばかり"]:
+        s.stage===1?["🌱","芽生え","小さな芽が顔を出した"]:
+        s.stage===2?["🌿","若草","葉がゆっくり広がっている"]:
+                    ["🌼","標本花","静かに花がひらいた"];
+  $("#plant").textContent=p[0];$("#plantName").textContent=p[1];$("#plantDesc").textContent=p[2];
+  $("#dexCards").innerHTML=s.dex.length?s.dex.map(x=>`<div class="card"><div class="big">🌼</div>${x}</div>`).join(""):"まだ記録はない。";
+  $("#pressCards").innerHTML=s.pressed.length?s.pressed.map(x=>`<div class="card"><div class="big">🥀</div>${x}</div>`).join(""):"まだ押し花はない。";
+  save();
+}
+document.querySelectorAll(".action").forEach(b=>b.onclick=()=>{
+  if(s.actions<=0)return;
+  s[b.dataset.stat]=clamp(s[b.dataset.stat]+18);s.actions--;
+  $("#log").textContent=b.dataset.stat==="water"?"土がしっとり湿った。":b.dataset.stat==="sun"?"やわらかな光にあてた。":"土に肥料を混ぜた。";
+  render();
+});
+$("#next").onclick=()=>{
+  s.day++;s.actions=3;
+  const weather=Math.floor(Math.random()*3);
+  if(weather===0){s.water=clamp(s.water+8);s.sun=clamp(s.sun-8);$("#log").textContent="雨の一日。水分が増え、日照は少なかった。";}
+  else if(weather===1){s.water=clamp(s.water-9);s.sun=clamp(s.sun+9);$("#log").textContent="よく晴れた。日照が増え、土は少し乾いた。";}
+  else $("#log").textContent="穏やかな一日だった。";
+  s.water=clamp(s.water-5);s.food=clamp(s.food-4);
+  if(s.day>=3)s.stage=Math.max(s.stage,1);
+  if(s.day>=6 && s.water>=35 && s.sun>=45 && s.food>=35)s.stage=Math.max(s.stage,2);
+  if(s.day>=9 && s.water>=35 && s.water<=90 && s.sun>=45 && s.food>=35){
+    s.stage=3;
+    if(!s.dex.includes("標本花")){s.dex.push("標本花");s.money+=15;$("#log").textContent="花が咲いた。図鑑に記録され、15を得た。";}
+  }
+  render();
+};
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tab,.panel").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");$("#"+b.dataset.tab).classList.add("active");
+});
+function buy(name){
+  const price=name==="野の花"?10:name==="湿地の花"?15:20;
+  if(s.money<price){alert("お金が足りない。");return}
+  s.money-=price;s.day=1;s.actions=3;s.water=s.sun=s.food=50;s.stage=0;
+  $("#log").textContent=name+"の種を土にまいた。";render();
+}
+$("#reset").onclick=()=>{
+  if(confirm("図鑑・押し花帳の記録を消去しますか？")){
+    s.dex=[];s.pressed=[];render();
+  }
+};
+render();
+</script>
+</body>
+</html>
